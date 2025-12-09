@@ -3,7 +3,6 @@
 ## ## ## ## ## ## ## ##
 ##    Konfigurasi    ##
 ## ## ## ## ## ## ## ##
-PICKERS=(1 2 3 4 5 6 7 8 9 0) # Pengambilan random memastikan semua nomor dipakai sekali
 
 ## ## ## ## ## ## ## ##
 ##   Variabel game   ##
@@ -17,6 +16,8 @@ guess_count=0 # Jumlah pemain mencoba menebak
 ## ## ## ## ## ## ## ## ## ## ##
 # Populate variabel answers dengan 5 nomor yang diambil secara acak dari pickers
 populate_answers() {
+	local PICKERS=(1 2 3 4 5 6 7 8 9 0) # Pengambilan random memastikan semua nomor dipakai sekali
+
 	for (( i=0; i<5; i++ )) {
 		index_count=$(( ${#PICKERS[@]} - 1 ))
 		selected_index=$(( RANDOM % index_count ))
@@ -59,16 +60,25 @@ parse_guess() {
 game_loop() {
 	populate_answers
 
-	echo "answers: " "${answers[@]}"
-
 	while (( 1 )); do
 		local guess=()
-
-		echo -n "Masukkan 5 angka untuk menebak (tidak boleh sama)"
+		echo -n "Masukkan 5 angka untuk menebak (tidak boleh sama): "
 		while (( ${#guess[@]} < 5 )); do
-			IFS= read -rsn1 key # Baca satu key
+			IFS= read -rsn1 key # Baca input dengan parameter "r: raw / tanpa tambahan escape character; s: silent / tanpa echo; n1: hanya 1 karakter"
+
+			# Regex variable key dan hanya terima input angka
 			if [[ $key =~ [0-9] ]]; then
-				# Regex variable key dan hanya terima input angka
+				local skip=0
+				for (( i=0; i<${#guess[@]}; i++)); do
+					if [[ "$key" -eq "${guess[i]}" ]]; then
+						# Jangan masukkan inputtan ke array guess jika telah ada nomor yang sama
+						skip=1
+						break
+					fi
+				done
+				if (( skip != 0 )); then
+					continue
+				fi	
 				guess+=("$key")
 				echo -n "$key "
 			fi
