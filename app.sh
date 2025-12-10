@@ -25,6 +25,7 @@ penalty=0 # Penalty berdasarkan difficulty
 populate_answers() {
 	local PICKERS=(1 2 3 4 5 6 7 8 9 0) # Pengambilan random memastikan semua nomor dipakai sekali
 
+	# Ambil sampai dapat 4 angka
 	for (( i=0; i<4; i++ )) {
 		index_count=$(( ${#PICKERS[@]} - 1 ))
 		selected_index=$(( RANDOM % index_count ))
@@ -44,12 +45,15 @@ parse_guess() {
 	local correct_count=0 # Menyimpan jumlah nomor yang benar
 	local misplaced_count=0 # Menyimpan jumlah nomor yang salah tempat
 
+	# Cek array guess jika ada angka yang sama di array answer
 	for (( i=0; i<4; i++)); do
 		for (( j=0; j<4; j++)); do
 			if [[ ${guesses[$i]} -eq ${answers[$j]} ]]; then
 				if [[ $i -eq $j ]]; then
+				# Jika ada dan posisi index sama
 					correct_count=$((correct_count+1))
 				else
+				# Jika ada tapi posisi index beda
 					misplaced_count=$((misplaced_count+1))
 				fi
 				break
@@ -57,6 +61,7 @@ parse_guess() {
 		done
 	done
 
+	# Output hasil parsing dipisah spasi agar mudah di looping
 	echo "$correct_count $misplaced_count"
 } 
 
@@ -98,6 +103,7 @@ render_base_ui() {
 }
 
 # Memulai game dengan menyeting kesulitan dan generasi jawaban random
+# Menerima satu argument untuk menyatakan kesulitan dari game
 start_game() {
 	local choosen_diff=$1
 
@@ -111,9 +117,11 @@ start_game() {
 	# Render ulang ui untuk menghapus ui sebelumnya
 	render_base_ui
 
+	# Entry ke game_loop
 	game_loop
 }
 
+# Looping sesi game. Keluar dari fungsi ini hanya terjadi jika menang / waktu habis
 game_loop() {
 	# Penghitungan timer bomb dengan menghitung berapa kali render telah terjadi
 	# Diatur dengan konfigurasi frame per seconds dan time per frame (timeout looping)
@@ -304,6 +312,7 @@ game_loop() {
 	
 }
 
+# Entry point dari game, mengontrol pemilihan menu awal
 main_menu() {
 	# Tampilkan base ui
 	render_base_ui
@@ -345,7 +354,7 @@ main_menu() {
 	local selector=0 # 0-3 Kesulitan, 4 Exit
 	# Looping render selector & pemilihan menu
 	while (( 1 )); do
-		## Render input
+		## Render menu pilihan
 		local mm_line=23
 		local mm_col=6
 		for (( i=0; i<5; i++ )); do
@@ -382,6 +391,7 @@ main_menu() {
 		if [[ -z "$key" ]]; then
 			case "$selector" in
 				'0'|'1'|'2'|'3')
+					# Jika selector berada di 0-3 maka mulai game berdasarkan selector (kesulitan game)
 					start_game $selector
 					
 					# Render ulang ui setelah sesi game selesai
@@ -401,10 +411,10 @@ main_menu() {
 			read -rsn2 key
 		fi
 
-		# Deteksi value key
+		# Deteksi value key input
 		case "$key" in
 			'[C')
-				# Panah kanan (\e[D)
+				# Panah kanan (\e[C)
 				if (( selector < 4 )); then
 					selector=$((selector+1))
 				fi
@@ -415,15 +425,14 @@ main_menu() {
 					selector=$((selector-1))
 				fi
 				;;
-			*)
-				# Abaikan input lainnya
-				continue
-				;;
 		esac
 	done
 }
 
+# Menghilangkan kursor saat game berjalan
 setterm -cursor off
+
+# Fungsi cleanup: membersihkan terminal dan mengembalikan cursor
 cleanup() {
 	setterm -cursor on
 	echo -ne "\e[3J"
@@ -432,9 +441,11 @@ cleanup() {
 	echo -ne "\e[0m"
 	exit 0
 }
+
+# Trap signal exit (dipanggil dari game) dan SIGINT (ctrl+C)
 trap cleanup SIGINT
 trap cleanup EXIT
 
-#game_loop
+# entry point main menu
 main_menu
 
